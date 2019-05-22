@@ -13,9 +13,13 @@ RUN_USER_PASSWD=$([ ! -z "${RUN_USER_EPASSWD}" ] && echo ${RUN_USER_EPASSWD} | b
 RUN_USER_UID=${RUN_USER_UID:-1000}
 RUN_USER_GID=${RUN_USER_GID:-100}
 
-docker-adduser -u ${RUN_USER_UID} -g ${RUN_USER_GID} -H /dev/null -S /sbin/nologin -R ${RUN_USER_NAME}
+if [ "${RUN_USER_UID}" != "0" ]; then
+	docker-adduser -u ${RUN_USER_UID} -g ${RUN_USER_GID} -H /home/${RUN_USER_NAME} -S /bin/sh -R ${RUN_USER_NAME}
+fi
 
 echo "${RUN_USER_NAME}:${RUN_USER_PASSWD}" | chpasswd &> /dev/null
+
+echo "Welcome to Alpine! (${HOSTNAME})" > /etc/motd
 
 #sshd
 mkdir -p /conf.d/ssh
@@ -28,7 +32,7 @@ if [ -e /conf.d/ssh/ssh_host_key ]; then
 	chmod 600 /conf.d/ssh/ssh_host_*
 	chmod 644 /conf.d/ssh/ssh_host_*.pub
 else
-	if [ ! -e /etc/ssh/ssh_host_key ]; then
+	if [ ! -e /conf.d/ssh/ssh_host_rsa_key ]; then
 		ssh-keygen -A
 		mv /etc/ssh/ssh_host_* /conf.d/ssh/
 	fi
