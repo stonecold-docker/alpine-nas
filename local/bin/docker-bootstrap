@@ -1,0 +1,220 @@
+#!/bin/sh
+
+set -e
+
+if [ -e /.init ]; then
+	exit
+fi
+
+touch /.init
+
+RUN_USER_NAME=${RUN_USER_NAME:-forumi0721}
+RUN_USER_PASSWD=$([ ! -z "${RUN_USER_EPASSWD}" ] && echo ${RUN_USER_EPASSWD} | base64 -d 2>/dev/null || echo ${RUN_USER_PASSWD:-passwd})
+RUN_USER_UID=${RUN_USER_UID:-1000}
+RUN_USER_GID=${RUN_USER_GID:-100}
+
+docker-adduser -u ${RUN_USER_UID} -g ${RUN_USER_GID} -H /dev/null -S /sbin/nologin -R ${RUN_USER_NAME}
+
+echo "${RUN_USER_NAME}:${RUN_USER_PASSWD}" | chpasswd &> /dev/null
+
+#sshd
+mkdir -p /conf.d/ssh
+
+if [ ! -e /conf.d/ssh/sshd_config ]; then
+	cp /etc/ssh/sshd_config /conf.d/ssh/
+	sed -e 's/^#\(Port\) .*$/\1 22/g' -e 's/^#\(AddressFamily .*\)$/\1/g' -e 's/^#\(ListenAddress .*$\)/\1/g' -e 's/^#\(HostKey\) \/etc\/ssh\/\(.*\)$/\1 \/conf.d\/ssh\/\2/g' //etc/ssh/sshd_config > /conf.d/ssh/sshd_config
+fi
+if [ -e /conf.d/ssh/ssh_host_key ]; then
+	chmod 600 /conf.d/ssh/ssh_host_*
+	chmod 644 /conf.d/ssh/ssh_host_*.pub
+else
+	if [ ! -e /etc/ssh/ssh_host_key ]; then
+		ssh-keygen -A
+		mv /etc/ssh/ssh_host_* /conf.d/ssh/
+	fi
+fi
+
+#samba
+mkdir -p /conf.d/samba
+
+if [ ! -s /conf.d/samba/smb.conf ]; then
+	NETBIOS_NAME=${NETBIOS_NAME:-SAMBA}
+	WORKGROUP=${WORKGROUP:-WORKGROUP}
+	SAMBA_SHARE=${SAMBA_SHARE:-data:/data}
+
+	cat << EOF > /tmp/smb.conf
+[global] 
+	netbios name = ${NETBIOS_NAME} 
+	workgroup = ${WORKGROUP} 
+	server string = Samba %v in an Docker container 
+	security = user 
+	client lanman auth = No
+	client NTLMv2 auth = Yes
+	client plaintext auth = No
+	lanman auth = No
+	ntlm auth = Yes
+	raw NTLMv2 auth = Yes
+	guest account = nobody 
+	#map to guest = Bad User 
+	map to guest = never
+	max protocol = SMB3
+	
+	# disable printing services 
+	load printers = no 
+	printing = bsd 
+	printcap name = /dev/null 
+	disable spoolss = yes 
+
+	# performance
+	strict allocate = Yes
+	allocation roundup size = 4096
+	read raw = Yes
+	write raw = Yes
+	strict locking = No
+	socket options = TCP_NODELAY IPTOS_LOWDELAY SO_RCVBUF=131072 SO_SNDBUF=131072
+	min receivefile size = 16384
+	use sendfile = Yes
+	aio read size = 16384
+	aio write size = 16384
+
+EOF
+
+	for share in $(echo ${SAMBA_SHARE} | sed -e "s/,/\n/g")
+	do
+		share_name="$(echo "${share}" | sed -e "s/^\([^=]*\)=\?\(.*\)$/\1/g")"
+		share_path="$(echo "${share}" | sed -e "s/^\([^=]*\)=\?\(.*\)$/\2/g")"
+		if [ -z "${share_path}" ]; then
+			share_path="${share_name}"
+			share_name="$(basename "${share_path}")"
+		fi
+		cat << EOF >> /tmp/smb.conf
+[${share_name}] 
+	comment = ${share_name} 
+	path = ${share_path}
+	read only = no
+	write list = ${RUN_USER_NAME} 
+	force user = ${RUN_USER_NAME}
+	guest ok = yes 
+
+EOF
+	done
+
+	cat /tmp/smb.conf > /conf.d/samba/smb.conf
+	rm -rf /tmp/smb.conf
+fi
+
+if [ -z "$(pdbedit ${RUN_USER_NAME} 2> /dev/null)" ]; then
+	echo -e "${RUN_USER_PASSWD}\n${RUN_USER_PASSWD}" | smbpasswd -a -s -c /conf.d/samba/smb.conf ${RUN_USER_NAME}
+else
+	echo -e "${RUN_USER_PASSWD}\n${RUN_USER_PASSWD}" | smbpasswd -s -c /conf.d/samba/smb.conf ${RUN_USER_NAME}
+fi
+
+
+
+#minidlna
+mkdir -p /conf.d/minidlna
+
+FRIENDLY_NAME=${FRIENDLY_NAME:-DLNA Server}
+MEDIA_DIR=${MEDIA_DIR:-/data}
+
+if [ ! -s /conf.d/minidlna/minidlna.conf ]; then
+	cat /etc/minidlna.conf > /tmp/minidlna.conf
+	sed -i -e "s/^#\?\(friendly_name\)=.*/\1=${FRIENDLY_NAME}/g" /tmp/minidlna.conf
+
+	sed -i -e "s@^#\?\(db_dir\)=.*@\1=/conf.d/minidlna@g" /tmp/minidlna.conf
+	sed -i -e "s/^\(media_dir=.*\)$/#\1/g" /tmp/minidlna.conf
+	echo -e "\n# set this to the directory you want scanned." >> /tmp/minidlna.conf
+	for dir in $(echo ${MEDIA_DIR} | sed -e "s/,/\n/g")
+	do
+		if [ -z "${dir}" -o ! -e "${dir}" ]; then
+			continue
+		fi
+		echo "media_dir=${dir}" >> /tmp/minidlna.conf
+	done
+
+	if [ ! -z "${NETWORK_INTERFACE}" ]; then
+		sed -i -e "s/^#\?\(network_interface\)=.*/\1=${NETWORK_INTERFACE}/g" /tmp/minidlna.conf
+	fi
+
+	cat /tmp/minidlna.conf > /conf.d/minidlna/minidlna.conf
+	rm -rf /tmp/minidlna.conf
+fi
+
+chown -R minidlna:minidlna /conf.d/minidlna
+
+
+
+#transmission
+mkdir -p /conf.d/transmission-daemon
+
+TR_DOWNLOAD_DIR=${TR_DOWNLOAD_DIR:-/data}
+TR_BLOCKLIST_URL=${TR_BLOCKLIST_URL}
+TR_PREALLOCATION=${TR_PREALLOCATION}
+TR_RATIO_LIMIT=${TR_RATIO_LIMIT}
+TR_RPC_WHITELIST=${TR_RPC_WHITELIST}
+TR_SPEED_LIMIT_DOWN=${TR_SPEED_LIMIT_DOWN}
+TR_SPEED_LIMIT_UP=${TR_SPEED_LIMIT_UP}
+TR_PEER_PORT=${TR_PEER_PORT}
+
+if [ ! -s /conf.d/transmission-daemon/settings.json ]; then
+	transmission-daemon -d &> /tmp/settings.json
+
+	sed -i -e "s@\(\"rpc-authentication-required\"\): .*\$@\1: true,@g" -e "s/\(\"rpc-username\"\): .*$/\1: \"${RUN_USER_NAME}\",/g" -e "s/\(\"rpc-password\"\): .*$/\1: \"${RUN_USER_PASSWD}\",/g" /tmp/settings.json
+
+	sed -i -e "s@\(\"download-dir\"\): .*\$@\1: \"${TR_DOWNLOAD_DIR}\",@g" -e "s@\(\"incomplete-dir\"\): .*\$@\1: \"${TR_DOWNLOAD_DIR}\",@g" /tmp/settings.json
+
+	if [ ! -z "${TR_BLOCKLIST_URL}" ]; then
+		sed -i -e "s@\(\"blocklist-url\"\): .*\$@\1: \"${TR_BLOCKLIST_URL}\",@g" -e "s@\(\"blocklist-enabled\"\): .*\$@\1: true,@g" /tmp/settings.json
+	fi
+
+	if [ ! -z "${TR_PREALLOCATION}" ]; then
+		sed -i -e "s@\(\"preallocation\"\): .*\$@\1: ${TR_PREALLOCATION},@g" /tmp/settings.json
+	fi
+
+	if [ ! -z "${TR_RATIO_LIMIT}" ]; then
+		sed -i -e "s@\(\"ratio-limit\"\): .*\$@\1: ${TR_RATIO_LIMIT},@g" -e "s@\(\"ratio-limit-enabled\"\): .*\$@\1: true,@g" /tmp/settings.json
+	else
+		sed -i -e "s@\(\"ratio-limit-enabled\"\): .*\$@\1: false,@g" /tmp/settings.json
+	fi
+
+	if [ ! -z "${TR_RPC_WHITELIST}" ]; then
+		sed -i -e "s@\(\"rpc-whitelist\"\): .*\$@\1: \"${TR_RPC_WHITELIST}\",@g" -e "s@\(\"rpc-whitelist-enabled\"\): .*\$@\1: true,@g" /tmp/settings.json
+	else
+		sed -i -e "s@\(\"rpc-whitelist-enabled\"\): .*\$@\1: false,@g" /tmp/settings.json
+	fi
+
+	if [ ! -z "${TR_SPEED_LIMIT_DOWN}" ]; then
+		sed -i -e "s@\(\"speed-limit-down\"\): .*\$@\1: ${TR_SPEED_LIMIT_DOWN},@g" -e "s@\(\"speed-limit-down-enabled\"\): .*\$@\1: true,@g" /tmp/settings.json
+	else
+		sed -i -e "s@\(\"speed-limit-down-enabled\"\): .*\$@\1: false,@g" /tmp/settings.json
+	fi
+
+	if [ ! -z "${TR_SPEED_LIMIT_UP}" ]; then
+		sed -i -e "s@\(\"speed-limit-up\"\): .*\$@\1: ${TR_SPEED_LIMIT_UP},@g" -e "s@\(\"speed-limit-up-enabled\"\): .*\$@\1: true,@g" /tmp/settings.json
+	else
+		sed -i -e "s@\(\"speed-limit-up-enabled\"\): .*\$@\1: false,@g" /tmp/settings.json
+	fi
+
+	if [ ! -z "${TR_PEER_PORT}" ]; then
+		sed -i -e "s@\(\"peer-port\"\): .*\$@\1: ${TR_PEER_PORT},@g" /tmp/settings.json
+	fi
+
+	#etc
+	sed -i -e "s@\(\"seed-queue-enabled\"\): .*\$@\1: true,@g" -e "s@\(\"seed-queue-size\"\): .*\$@\1: 5,@g" /tmp/settings.json
+
+	cat /tmp/settings.json > /conf.d/transmission-daemon/settings.json
+	rm -rf /tmp/settings.json
+fi
+
+docker-chown ${RUN_USER_NAME} /conf.d/transmission-daemon
+
+
+
+#filebrowser
+mkdir -p /conf.d/filebrowser
+
+if [ ! -s /conf.d/filebrowser/filebrowser.db ]; then
+	filebrowser config init -a 0.0.0.0 -p 8080 -r /data -d /conf.d/filebrowser/filebrowser.db
+	filebrowser users add admin admin --perm.admin=true -d /conf.d/filebrowser/filebrowser.db
+fi
+

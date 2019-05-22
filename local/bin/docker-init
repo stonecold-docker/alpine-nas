@@ -1,0 +1,37 @@
+#!/bin/sh
+
+set -e
+
+docker-install -r -u -c su-exec goreman \
+	openssh \
+	samba \
+	minidlna \
+	transmission-daemon transmission-cli \
+	bash curl
+
+mkdir -p /data
+
+#samba
+mkdir -p /var/log/samba
+
+mkdir -p /conf.d /conf.d/samba
+touch /conf.d/samba/smb.conf
+
+#minidlna
+mkdir -p /var/run/minidlna
+chown minidlna:minidlna /var/run/minidlna
+chmod 775 /var/run/minidlna
+mkdir -p /var/cache/minidlna
+chown minidlna:minidlna /var/cache/minidlna
+
+mkdir -p /conf.d /conf.d/minidlna
+touch /conf.d/minidlna/minidlna.conf
+
+#transmission
+mkdir -p /conf.d /conf.d/transmission-daemon
+touch /conf.d/transmission-daemon/settings.json
+
+#filebrowser
+mkdir -p /conf.d /conf.d/filebrowser 
+curl -fsSL https://filebrowser.xyz/get.sh | bash
+

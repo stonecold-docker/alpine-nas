@@ -1,0 +1,6 @@
+sshd: /usr/sbin/sshd -D -f /conf.d/ssh/sshd_config
+nmbd: nmbd -F -S --no-process-group -s=/conf.d/samba/smb.conf
+smbd: smbd -F -S --no-process-group -s=/conf.d/samba/smb.conf
+minidlna: su-exec minidlna minidlnad -f /conf.d/minidlna/minidlna.conf -S
+transmission: transmission.sh
+filebrowser: filebrowser -d /conf.d/filebrowser/filebrowser.db
