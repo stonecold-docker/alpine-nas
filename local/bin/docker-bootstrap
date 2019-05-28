@@ -222,3 +222,52 @@ if [ ! -s /conf.d/filebrowser/filebrowser.db ]; then
 	filebrowser users add admin admin --perm.admin=true -d /conf.d/filebrowser/filebrowser.db
 fi
 
+
+
+#Showdown
+TRANSMISSION_URL=http://localhost:9091/transmission/rpc/
+TRANSMISSION_USERNAME=${RUN_USER_NAME}
+TRANSMISSION_PASSWORD=${RUN_USER_PASSWD}
+SHOWDOWN_DELETE_SEEDING=${SHOWDOWN_DELETE_SEEDING:-Y}
+SHOWDOWN_FILE_RENAME=${SHOWDOWN_FILE_RENAME:-N}
+SHOWDOWN_FILE1=${SHOWDOWN_FILE1}
+SHOWDOWN_FILE2=${SHOWDOWN_FILE2}
+SHOWDOWN_FILE_MOVE=${SHOWDOWN_FILE_MOVE:-N}
+SHOWDOWN_FILE_MOVE_SEASON_FOLDER=${SHOWDOWN_FILE_MOVE_SEASON_FOLDER:-N}
+SHOWDOWN_DRAMA_FILE_MOVE_BASE_PATH=${SHOWDOWN_DRAMA_FILE_MOVE_BASE_PATH}
+SHOWDOWN_ENTER_FILE_MOVE_BASE_PATH=${SHOWDOWN_ENTER_FILE_MOVE_BASE_PATH}
+SHOWDOWN_TV_FILE_MOVE_BASE_PATH=${SHOWDOWN_TV_FILE_MOVE_BASE_PATH}
+
+mkdir -p /conf.d/showdown
+
+if [ ! -s /conf.d/showdown/config.properties ]; then
+	cat /opt/showdown/config.properties.template > /tmp/config.properties
+
+	sed -i -e "s@log_level=.*@log_level=error@g" /tmp/config.properties
+	sed -i -e "s@transmission_url=.*@transmission_url=${TRANSMISSION_URL}@g" /tmp/config.properties
+	sed -i -e "s@transmission_username=.*@transmission_username=${TRANSMISSION_USERNAME}@g" /tmp/config.properties
+	sed -i -e "s@transmission_password=.*@transmission_password=${TRANSMISSION_PASSWORD}@g" /tmp/config.properties
+	sed -i -e "s@transmission_delete_seeding=.*@transmission_delete_seeding=${SHOWDOWN_DELETE_SEEDING}@g" /tmp/config.properties
+	sed -i -e "s@file_rename=.*@file_rename=${SHOWDOWN_FILE_RENAME}@g" /tmp/config.properties
+	sed -i -e "s@file_move=.*@file_move=${SHOWDOWN_FILE_MOVE}@g" /tmp/config.properties
+	sed -i -e "s@file_move_season_folder=.*@file_move_season_folder=${SHOWDOWN_FILE_MOVE_SEASON_FOLDER}@g" /tmp/config.properties
+	if [ ! -z "${SHOWDOWN_FILE1}" ]; then
+		sed -i -e "s@file_name1=.*@file_name1=${SHOWDOWN_FILE1}@g" /tmp/config.properties
+	fi
+	if [ ! -z "${SHOWDOWN_FILE2}" ]; then
+		sed -i -e "s@file_name2=.*@file_name2=${SHOWDOWN_FILE2}@g" /tmp/config.properties
+	fi
+	if [ ! -z "${SHOWDOWN_DRAMA_FILE_MOVE_BASE_PATH}" ]; then
+		sed -i -e "s@drama_file_move_base_path=.*@drama_file_move_base_path=${SHOWDOWN_DRAMA_FILE_MOVE_BASE_PATH}@g" /tmp/config.properties
+	fi
+	if [ ! -z "${SHOWDOWN_ENTER_FILE_MOVE_BASE_PATH}" ]; then
+		sed -i -e "s@enter_file_move_base_path=.*@enter_file_move_base_path=${SHOWDOWN_DRAMA_FILE_MOVE_BASE_PATH}@g" /tmp/config.properties
+	fi
+	if [ ! -z "${SHOWDOWN_TV_FILE_MOVE_BASE_PATH}" ]; then
+		sed -i -e "s@tv_file_move_base_path=.*@tv_file_move_base_path=${SHOWDOWN_DRAMA_FILE_MOVE_BASE_PATH}@g" /tmp/config.properties
+	fi
+
+	cat /tmp/config.properties > /conf.d/showdown/config.properties
+	rm -rf /tmp/config.properties
+fi
+
