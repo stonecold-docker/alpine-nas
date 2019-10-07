@@ -16,7 +16,6 @@
     - [ReadyMedia](https://sourceforge.net/projects/nas/) : ReadyMedia (formerly known as MiniDLNA) is a simple media server software, with the aim of being fully compliant with DLNA/UPnP-AV clients.
 	- [Transmission](https://transmissionbt.com/) : Transmission is a cross-platform BitTorrent client.
 	- [File Browser](https://github.com/filebrowser/filebrowser) : Web File Browser which can be used as a middleware or standalone app.
-	- [ShowDown](https://iodides.tistory.com/8?category=693844)
 * Base Image
     - [forumi0721/alpine-x64-base](https://hub.docker.com/r/forumi0721/alpine-x64-base/)
 
