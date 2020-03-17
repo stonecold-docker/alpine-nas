@@ -2,26 +2,25 @@
 
 set -e
 
-if [ "$(uname -m)" = "armv7l" ]; then
-	docker-install -r -u -c su-exec goreman \
-		openssh \
-		samba \
-		minidlna \
-		transmission-daemon transmission-cli \
-		openjdk8-jre-base \
-		bash curl \
-		php php7-pdo_sqlite
-else
-	docker-install -r -u -c su-exec goreman \
-		openssh \
-		samba \
-		minidlna \
-		transmission-daemon transmission-cli \
-		openjdk11-jre-headless \
-		bash curl \
-		php php7-pdo_sqlite
-fi
+echo "==> Installing required packages"
+PKG_LIB="su-exec goreman openssh samba minidlna transmission-daemon transmission-cli bash curl" 
+PKG_DEV=""
+docker-install -r -u  ${PKG_LIB} ${PKG_DEV}
+echo "==> OK"
+echo
 
+echo "==> Installing filebrowser"
+curl -fsSL https://filebrowser.xyz/get.sh | bash
+echo "==> OK"
+echo
+
+echo "==> Uninstalling unnecessary packages"
+docker-install -d -c ${PKG_DEV}
+echo "==> OK"
+echo
+
+echo "==> Setting basic configurations"
+#common
 mkdir -p /data
 
 #samba
@@ -46,5 +45,6 @@ touch /conf.d/transmission-daemon/settings.json
 
 #filebrowser
 mkdir -p /conf.d /conf.d/filebrowser 
-curl -fsSL https://filebrowser.xyz/get.sh | bash
+echo "==> OK"
+echo
 
