@@ -2,24 +2,24 @@
 
 set -e
 
-echo "==> Installing required packages"
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> Installing required packages"
 PKG_LIB="su-exec goreman openssh samba minidlna transmission-daemon transmission-cli bash curl" 
 PKG_DEV=""
-docker-install -r -u  ${PKG_LIB} ${PKG_DEV}
-echo "==> OK"
+docker-install -r -u ${PKG_LIB} ${PKG_DEV}
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> OK"
 echo
 
-echo "==> Installing filebrowser"
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> Installing filebrowser"
 curl -fsSL https://filebrowser.xyz/get.sh | bash
-echo "==> OK"
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> OK"
 echo
 
-echo "==> Uninstalling unnecessary packages"
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> Uninstalling unnecessary packages"
 docker-install -d -c ${PKG_DEV}
-echo "==> OK"
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> OK"
 echo
 
-echo "==> Setting basic configurations"
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> Setting basic configurations"
 #common
 mkdir -p /data
 
@@ -45,6 +45,6 @@ touch /conf.d/transmission-daemon/settings.json
 
 #filebrowser
 mkdir -p /conf.d /conf.d/filebrowser 
-echo "==> OK"
+echo "[$(TZ="GMT-9" date '+%Y-%m-%d %H:%M:%S')] ==> OK"
 echo
 
