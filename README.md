@@ -1,11 +1,16 @@
 # alpine-nas
+![Docker Pulls](https://img.shields.io/docker/pulls/forumi0721/alpine-nas)
+![Docker Stars](https://img.shields.io/docker/stars/forumi0721/alpine-nas)
 
-#### [alpine-x64-nas](https://hub.docker.com/r/forumi0721alpinex64/alpine-x64-nas/)
-![Docker Image Version (tag latest semver)](https://img.shields.io/docker/v/forumi0721alpinex64/alpine-x64-nas/latest)
-![Docker Image Size (tag)](https://img.shields.io/docker/image-size/forumi0721alpinex64/alpine-x64-nas/latest)
-![MicroBadger Layers (tag)](https://img.shields.io/microbadger/layers/forumi0721alpinex64/alpine-x64-nas/latest)
-![Docker Pulls](https://img.shields.io/docker/pulls/forumi0721alpinex64/alpine-x64-nas)
-![Docker Stars](https://img.shields.io/docker/stars/forumi0721alpinex64/alpine-x64-nas)
+
+
+----------------------------------------
+### x64
+![Docker Image Version](https://img.shields.io/docker/v/forumi0721/alpine-nas/latest)
+![Docker Image Size](https://img.shields.io/docker/image-size/forumi0721/alpine-nas/latest)
+### aarch64
+![Docker Image Version](https://img.shields.io/docker/v/forumi0721/alpine-nas/aarch64)
+![Docker Image Size](https://img.shields.io/docker/image-size/forumi0721/alpine-nas/aarch64)
 
 
 
@@ -13,7 +18,7 @@
 #### Description
 
 * Distribution : [Alpine Linux](https://alpinelinux.org/)
-* Architecture : x64
+* Architecture : x64,aarch64
 * Appplication : NAS
     - [openssh](https://www.openssh.com/) : OpenSSH is the premier connectivity tool for remote login with the SSH protocol.
 	- [Samba](https://www.samba.org/) : Samba is the standard Windows interoperability suite of programs for Linux and Unix.
@@ -33,7 +38,7 @@ docker run -d \
            -v /data:/data \
            -e FRIENDLY_NAME="DLNA Server" \
            -e MEDIA_DIR=/data \
-           forumi0721alpine[ARCH]/alpine-[ARCH]-nas:latest
+           forumi0721/alpine-nas:[ARCH_TAG]
 ```
 
 
