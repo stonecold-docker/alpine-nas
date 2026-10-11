@@ -5,10 +5,10 @@
 
 
 ----------------------------------------
-### x64
-![Docker Image Size](https://img.shields.io/docker/image-size/forumi0721/alpine-nas/x64)
-### aarch64
-![Docker Image Size](https://img.shields.io/docker/image-size/forumi0721/alpine-nas/aarch64)
+### amd64
+![Docker Image Size (tag)](https://img.shields.io/docker/image-size/forumi0721/alpine-nas/latest?arch=amd64)
+### arm64
+![Docker Image Size (tag)](https://img.shields.io/docker/image-size/forumi0721/alpine-nas/latest?arch=arm64)
 
 
 
@@ -16,8 +16,8 @@
 #### Description
 
 * Distribution : [Alpine Linux](https://alpinelinux.org/)
-* Architecture : x64,aarch64
-* Appplication : NAS
+* Architecture : amd64, arm64
+* Application : NAS
     - [openssh](https://www.openssh.com/) : OpenSSH is the premier connectivity tool for remote login with the SSH protocol.
 	- [Samba](https://www.samba.org/) : Samba is the standard Windows interoperability suite of programs for Linux and Unix.
     - [ReadyMedia](https://sourceforge.net/projects/nas/) : ReadyMedia (formerly known as MiniDLNA) is a simple media server software, with the aim of being fully compliant with DLNA/UPnP-AV clients.
@@ -36,7 +36,7 @@ docker run -d \
            -v /data:/data \
            -e FRIENDLY_NAME="DLNA Server" \
            -e MEDIA_DIR=/data \
-           forumi0721/alpine-nas:[ARCH_TAG]
+           forumi0721/alpine-nas:latest
 ```
 
 
